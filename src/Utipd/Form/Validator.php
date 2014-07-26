@@ -3,8 +3,9 @@
 namespace Utipd\Form;
 
 use Exception;
-use Symfony\Component\HttpFoundation\Request;
 use InvalidArgumentException;
+use Respect\Validation\Validatable;
+use Symfony\Component\HttpFoundation\Request;
 
 /*
 * Validator
@@ -18,7 +19,7 @@ class Validator
         $this->validation_spec = $validation_spec;
     }
 
-    public function validateRequestVars(Request $request) {
+    public function validateRequest(Request $request) {
         return $this->validateSubmittedData($request->request->all());
     }
 
@@ -27,7 +28,7 @@ class Validator
 
         $errors = array();
         foreach($this->validation_spec as $_n => $spec) {
-            $value = $submitted_data[$spec['name']];
+            $value = isset($submitted_data[$spec['name']]) ? $submitted_data[$spec['name']] : null;
 
             if (isset($spec['validation'])) {
                 $should_validate = true;
@@ -36,7 +37,15 @@ class Validator
                 }
 
                 if ($should_validate) {
-                    if (!$spec['validation']->validate($value)) {
+
+                    $is_valid = false;
+                    if ($spec['validation'] instanceof Validatable) {
+                        $is_valid = $spec['validation']->validate($value);
+                    } else if (is_callable($spec['validation'])) {
+                        $is_valid = call_user_func($spec['validation'], $value);
+                    }
+
+                    if (!$is_valid) {
                         $errors[] = isset($spec['error']) ? $spec['error'] : "There was a problem with the field ".(isset($spec['label']) ? $spec['label'] : $spec['name'])."";
                         $value = null;
                     } else {
