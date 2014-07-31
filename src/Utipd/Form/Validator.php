@@ -6,6 +6,8 @@ use Exception;
 use InvalidArgumentException;
 use Respect\Validation\Validatable;
 use Symfony\Component\HttpFoundation\Request;
+use Utipd\Form\Exception\FormException;
+use Utipd\Form\Sanitizer;
 
 /*
 * Validator
@@ -24,9 +26,9 @@ class Validator
     }
 
     public function validateSubmittedData($submitted_data) {
-        $validated_data = array();
+        $validated_data = [];
 
-        $errors = array();
+        $errors = [];
         foreach($this->validation_spec as $_n => $spec) {
             $value = isset($submitted_data[$spec['name']]) ? $submitted_data[$spec['name']] : null;
 
@@ -65,7 +67,7 @@ class Validator
         }
 
         if ($errors) {
-            throw new InvalidArgumentException(implode("\n", $errors));
+            throw new FormException($errors);
         }
 
         // no errors
@@ -77,13 +79,17 @@ class Validator
     }
 
     public function sanitizeSubmittedData($submitted_data) {
-        $sanitized_data = array();
+        $sanitized_data = [];
 
         foreach($this->validation_spec as $_n => $spec) {
-            $value = $submitted_data[$spec['name']];
+            $value = isset($submitted_data[$spec['name']]) ? $submitted_data[$spec['name']] : null;
 
             if (isset($spec['sanitizer'])) {
-                $value = $spec['sanitizer']->sanitize($value);
+                if ($spec['sanitizer'] instanceof Sanitizer) {
+                    $value = $spec['sanitizer']->sanitize($value);
+                } else if (is_callable($spec['sanitizer'])) {
+                    $value = call_user_func($spec['sanitizer'], $value);
+                }
             }
 
             $sanitized_data[$spec['name']] = $value;
@@ -91,5 +97,18 @@ class Validator
 
         return $sanitized_data;
     } 
+
+    public function getDefaultValues() {
+        $defaults = [];
+
+        foreach($this->validation_spec as $_n => $spec) {
+            if (isset($spec['default'])) {
+                $default = $spec['default'];
+                $defaults[$spec['name']] = $default;
+            }
+        }
+
+        return $defaults;
+    }
 
 }
