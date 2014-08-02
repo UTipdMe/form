@@ -88,7 +88,7 @@ class Validator
                 if ($spec['sanitizer'] instanceof Sanitizer) {
                     $value = $spec['sanitizer']->sanitize($value);
                 } else if (is_callable($spec['sanitizer'])) {
-                    $value = call_user_func($spec['sanitizer'], $value);
+                    $value = call_user_func($spec['sanitizer'], $value, $submitted_data);
                 }
             }
 
