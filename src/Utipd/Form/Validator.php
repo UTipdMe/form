@@ -3,7 +3,6 @@
 namespace Utipd\Form;
 
 use Exception;
-use InvalidArgumentException;
 use Respect\Validation\Validatable;
 use Symfony\Component\HttpFoundation\Request;
 use Utipd\Form\Exception\FormException;
